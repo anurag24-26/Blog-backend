@@ -33,7 +33,7 @@ app.use("/images", express.static(path.join(__dirname, "/images")));
 // Ensure 'images' directory exists
 const uploadPath = path.join(__dirname, "/images");
 if (!fs.existsSync(uploadPath)) {
-  fs.mkdirSync(uploadPath);
+  fs.mkdirSync(uploadPath, { recursive: true });
 }
 
 // CORS Configuration
