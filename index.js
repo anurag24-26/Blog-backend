@@ -38,7 +38,7 @@ if (!fs.existsSync(uploadPath)) {
 
 // CORS Configuration
 const corsOptions = {
-  origin: "http://localhost:3000", // Replace with your frontend URL
+  origin: "https://blog-frontend-4kkm.onrender.com", // Replace with your frontend URL
   credentials: true,
   methods: "GET,HEAD,PUT,PATCH,POST,DELETE",
 };
