@@ -1,89 +1,79 @@
-const express=require('express')
-const app=express()
-const mongoose=require('mongoose')
-const dotenv=require('dotenv')
-const cors=require('cors')
-const multer=require('multer')
-const path=require("path")
-const cookieParser=require('cookie-parser')
-const authRoute=require('./routes/auth')
-const userRoute=require('./routes/users')
-const postRoute=require('./routes/posts')
-const commentRoute=require('./routes/comments')
-app.use(cors())
-const corsOptions = {
-    origin: '*',
-    credentials: true,
-  };
-  
-  app.use(cors(corsOptions));
-//database
-const connectDB=async()=>{
-    try{
-        await mongoose.connect(process.env.MONGO_URL)
-        console.log("database is connected successfully!")
+const express = require("express");
+const app = express();
+const mongoose = require("mongoose");
+const dotenv = require("dotenv");
+const cors = require("cors");
+const multer = require("multer");
+const path = require("path");
+const fs = require("fs");
+const cookieParser = require("cookie-parser");
+const authRoute = require("./routes/auth");
+const userRoute = require("./routes/users");
+const postRoute = require("./routes/posts");
+const commentRoute = require("./routes/comments");
 
-    }
-    catch(err){
-        console.log(err)
-    }
+dotenv.config();
+
+// Database Connection
+const connectDB = async () => {
+  try {
+    await mongoose.connect(process.env.MONGO_URL, { useNewUrlParser: true, useUnifiedTopology: true });
+    console.log("Database is connected successfully!");
+  } catch (err) {
+    console.error("Database connection failed:", err);
+  }
+};
+connectDB();
+
+// Middleware
+app.use(express.json());
+app.use(cookieParser());
+app.use("/images", express.static(path.join(__dirname, "/images")));
+
+// Ensure 'images' directory exists
+const uploadPath = path.join(__dirname, "/images");
+if (!fs.existsSync(uploadPath)) {
+  fs.mkdirSync(uploadPath);
 }
 
+// CORS Configuration
+const corsOptions = {
+  origin: "http://localhost:3000", // Replace with your frontend URL
+  credentials: true,
+  methods: "GET,HEAD,PUT,PATCH,POST,DELETE",
+};
+app.use(cors(corsOptions));
 
+// Routes
+app.use("/api/auth", authRoute);
+app.use("/api/users", userRoute);
+app.use("/api/posts", postRoute);
+app.use("/api/comments", commentRoute);
 
+// Multer Configuration for Image Upload
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, "images");
+  },
+  filename: (req, file, cb) => {
+    const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
+    cb(null, uniqueSuffix + path.extname(file.originalname));
+  },
+});
+const upload = multer({ storage });
 
-//middlewares
-dotenv.config()
-app.use(express.json())
-app.use("/images",express.static(path.join(__dirname,"/images")))
-console.log(cors())
-// const corsOptions = {
-//     origin: '*',
-//     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
-//     credentials: true,
-//     optionsSuccessStatus: 204,
-//   };
-  
-//   app.use(cors(corsOptions));
-// app.use(cors({origin:"http://localhost:3000",credentials:true}))
-// app.options("/api/users", cors({
-//     methods: ["GET", "PUT", "POST", "DELETE"], // Add other allowed methods as needed
-//   }));
-// app.options("/api/auth", cors({
-//     methods: ["GET", "PUT", "POST", "DELETE"], // Add other allowed methods as needed
-//   }));
-// app.options("/api/posts", cors({
-//     methods: ["GET", "PUT", "POST", "DELETE"], // Add other allowed methods as needed
-//   }));
-// app.options("/api/comments", cors({
-//     methods: ["GET", "PUT", "POST", "DELETE"], // Add other allowed methods as needed
-//   }));
-app.use(cookieParser())
-app.use("/api/auth",authRoute)
-app.use("/api/users",userRoute)
-app.use("/api/posts",postRoute)
-app.use("/api/comments",commentRoute)
+app.post("/api/upload", upload.single("file"), (req, res) => {
+  res.status(200).json("Image has been uploaded successfully!");
+});
 
-//image upload
-const storage=multer.diskStorage({
-    destination:(req,file,fn)=>{
-        fn(null,"images")
-    },
-    filename:(req,file,fn)=>{
-        fn(null,req.body.img)
-        // fn(null,"image1.jpg")
-    }
-})
+// Global Error Handling
+app.use((err, req, res, next) => {
+  console.error(err.stack);
+  res.status(500).json({ message: "Something went wrong!" });
+});
 
-const upload=multer({storage:storage})
-app.post("/api/upload",upload.single("file"),(req,res)=>{
-    // console.log(req.body)
-    res.status(200).json("Image has been uploaded successfully!")
-})
-
-
+// Start Server
 const PORT = process.env.PORT || 4000;
-
 app.listen(PORT, "0.0.0.0", () => {
   console.log(`App is running on port ${PORT}`);
 });
